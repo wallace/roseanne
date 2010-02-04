@@ -1,0 +1,106 @@
+<% content_for :scripts do %>
+  <script type="text/javascript">
+    var url = window.location.toString().split("#")[0];
+
+    function innerdiff (base, newtxt, opcodes, diffoutputdiv) {
+      while (diffoutputdiv.firstChild) diffoutputdiv.removeChild(diffoutputdiv.firstChild);
+      var contextSize = $("contextSize").value;
+      contextSize = contextSize ? contextSize : null;
+      // build the diff view and add it to the current DOM
+      diffoutputdiv.appendChild(diffview.buildView({ baseTextLines:base,
+            newTextLines:newtxt,
+            opcodes:opcodes,
+            // set the display titles for each resource
+            baseTextName:"Base Text",
+            newTextName:"New Text",
+            contextSize:contextSize,
+            viewType: $("inline").checked ? 1 : 0 }));
+      // scroll down to the diff view
+      window.location = url + "#diff";
+    }
+
+    function diffUsingJS() {
+      // get the baseText and newText values from the two textboxes, and split them into lines
+      var base = difflib.stringAsLines($("baseText").value);
+      var newtxt = difflib.stringAsLines($("newText").value);
+      // create a SequenceMatcher instance that diffs the two sets of lines
+      var sm = new difflib.SequenceMatcher(base, newtxt);
+      // get the opcodes from the SequenceMatcher instance
+      // opcodes is a list of 3-tuples describing what changes should be made to the base text
+      //      in order to yield the new text
+      var opcodes = sm.get_opcodes();
+      var diffoutputdiv = $("diffoutput");
+      innerdiff (base, newtxt, opcodes, diffoutputdiv);
+    }
+
+    function diffUsingRuby () {
+      new Ajax.Request("/roxy/postYieldDiffData", {
+        parameters: {
+          baseText: $("baseText").value,
+          newText: $("newText").value,
+          ignoreWhitespace: "Y"
+        },
+        onSuccess: function (request) {
+          try {
+            // clear existing diff content
+            var diffoutputdiv = $('diffoutput');
+            while (diffoutputdiv.firstChild) diffoutputdiv.removeChild(diffoutputdiv.firstChild);
+            bt = request.responseJSON.baseText
+            nt = request.responseJSON.newText
+            op = request.responseJSON.opcodes
+            $("diffoutput").appendChild(diffview.buildView({ baseTextLines:bt,
+                                   newTextLines:nt,
+                                   opcodes:op,
+                                   baseTextName:'Base Text',
+                                   newTextName:'New Text',
+                                   contextSize:contextSize  }));
+          } catch (ex) {
+            alert("An error occurred updating the diff view:\n" + ex.toString());
+          }
+        },
+        onFailure: function(request) {
+          alert('Error occurred getting diff data.  Check the server logs.');
+        }
+      });
+    }
+  </script>
+<% end %>
+
+
+<div>
+  <br />
+  Lines of context around differing lines: <%= text_field_tag('contextSize', nil) %><br />
+  <input type="radio" name="_viewtype" checked="checked" id="sidebyside">
+  Side by Side  
+  <input type="radio" name="_viewtype" id="inline">
+  Inline 
+  <br /><br />
+
+  <div style="float:right; margin: 0px 15px;">
+    Previous Diffs
+    <% @file_diffs.each do |fd| %>
+    <br /><%= link_to_function "diff created_at #{fd.created_at}", 
+      "innerdiff(#{fd.baseText.to_json}, #{fd.newText.to_json}, #{fd.opcodes.to_json}, $('diffoutput'))" %>
+    <% end %>
+  </div>
+
+  <table>
+    <tr><th>Original Text</th><th> New Text </th></tr>
+    <tr>
+      <td><%= text_area_tag('baseText', "some here\n more complicated\nmore and more", :size => '50x20') %></td>
+      <td><%= text_area_tag('newText', "some there\n more complicated\nmore and less", :size => '50x20') %></td>
+    </tr>
+    <tr>
+      <td colspan=2 style="text-align: right">
+        <%= link_to_function 'Client JS Diff', "diffUsingJS()" %>&nbsp;&nbsp;
+        <%= link_to_function 'Server Ruby Diff', "diffUsingRuby()" %>
+      </td>
+    </tr>
+  </table>
+  <br />
+  <br />
+  <div id="diffoutput">
+  </div>
+
+
+</div>

@@ -1,0 +1,20 @@
+<html>
+  <head>
+
+    <script type="text/javascript" src="/javascripts/prototype.js"></script> 
+    <script type="text/javascript" src="/javascripts/difflib.js"></script> 
+    <script type="text/javascript" src="/javascripts/diffview.js"></script> 
+    <%= stylesheet_link_tag :all %>
+     
+    <%= yield :scripts %>
+  </head>
+
+<body>
+  <div id="header" style="background-color: #dfdfdf; height: 40px">
+
+    &nbsp;&nbsp;
+  </div>
+  <%= yield %>
+</body>
+</html>
+

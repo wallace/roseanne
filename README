@@ -1,0 +1,6 @@
+A simple rails web application that diffs the pasted text.  You can diff in
+client side javascript or server side ruby.  Server side ruby stores the diffed
+text into couchdb for later review.
+
+You need to set up the access for couchdb backend.  Something like
+'http://username:password@host.domain.com:port/database_name'
